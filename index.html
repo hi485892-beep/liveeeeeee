@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIVE — Weverse</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0d0d0f;
+    --surface: #17171a;
+    --surface2: #1e1e22;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f2;
+    --muted: #888892;
+    --accent: #b84fff;
+    --live-red: #ff3b5c;
+    --pink: #ff6eb4;
+    --blue: #5bc4ff;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Pretendard', 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-icons { display: flex; align-items: center; gap: 18px; }
+  .nav-icons svg {
+    width: 22px; height: 22px;
+    stroke: var(--muted); fill: none; stroke-width: 1.8;
+    cursor: pointer; transition: stroke 0.2s;
+  }
+  .nav-icons svg:hover { stroke: var(--text); }
+
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9/16;
+    max-height: 60vh;
+    background: #000;
+    overflow: hidden;
+  }
+  @media (min-width: 600px) {
+    .video-wrapper { aspect-ratio: 16/9; max-height: 55vh; }
+  }
+  .video-wrapper img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    display: block; filter: brightness(0.88);
+  }
+  .video-placeholder {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a0a2e 0%, #0d0d1a 50%, #1a0a1a 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .video-placeholder-inner {
+    text-align: center; color: rgba(255,255,255,0.3);
+  }
+  .video-placeholder-inner svg {
+    width: 60px; height: 60px;
+    stroke: rgba(184,79,255,0.4); fill: none; stroke-width: 1.2;
+    margin-bottom: 12px;
+  }
+  .video-placeholder-inner p { font-size: 13px; }
+
+  .overlay-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.65), transparent);
+  }
+  .live-badge {
+    background: var(--live-red); color: #fff;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+    padding: 4px 10px; border-radius: 4px;
+    display: flex; align-items: center; gap: 5px;
+    animation: pulse-badge 2s infinite;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #fff;
+    animation: pulse-dot 1.2s infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes pulse-badge {
+    0%,100%{box-shadow:0 0 0 0 rgba(255,59,92,0.5)}
+    50%{box-shadow:0 0 0 5px rgba(255,59,92,0)}
+  }
+  .viewer-count {
+    display: flex; align-items: center; gap: 5px;
+    color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 500;
+  }
+  .viewer-count svg { width: 14px; height: 14px; fill: rgba(255,255,255,0.7); }
+
+  .overlay-bottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 40px 16px 16px;
+    background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+  }
+  .artist-info { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .artist-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--accent); overflow: hidden;
+    background: linear-gradient(135deg, #b84fff44, #5bc4ff44);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .artist-name { font-size: 15px; font-weight: 700; color: #fff; }
+  .artist-handle { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+  .live-title { font-size: 13px; color: rgba(255,255,255,0.85); margin-left: 46px; }
+
+  .timer-bar {
+    background: var(--surface); padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .timer { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .timer strong { color: var(--live-red); font-weight: 600; }
+  .reaction-row { display: flex; gap: 16px; }
+  .react-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 20px; transition: transform 0.1s; position: relative;
+  }
+  .react-btn:active { transform: scale(1.4); }
+  .react-count {
+    font-size: 11px; color: var(--muted);
+    position: absolute; bottom: -14px; left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+
+  .main-content { display: flex; flex-direction: column; flex: 1; }
+  @media (min-width: 900px) {
+    .main-content { flex-direction: row; }
+    .chat-panel { width: 360px; min-width: 320px; }
+  }
+
+  .chat-panel {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--surface); border-left: 1px solid var(--border);
+  }
+  .chat-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: var(--muted);
+  }
+  .chat-header svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 12px 0;
+    display: flex; flex-direction: column; gap: 2px;
+    max-height: 340px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .chat-msg {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 14px; transition: background 0.15s;
+  }
+  .chat-msg:hover { background: rgba(255,255,255,0.03); }
+  .artist-msg { background: rgba(184,79,255,0.06); border-left: 2px solid var(--accent); }
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-user { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .msg-text { font-size: 13px; color: var(--text); line-height: 1.4; word-break: break-word; }
+  .msg-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .system-msg {
+    text-align: center; font-size: 11px; color: var(--muted);
+    padding: 6px 14px; background: rgba(255,255,255,0.03);
+    margin: 4px 14px; border-radius: 6px;
+  }
+  .chat-input-area {
+    padding: 10px 14px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .chat-input {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 8px 14px; font-size: 13px; color: var(--text);
+    outline: none; transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input:disabled { opacity: 0.5; }
+  .send-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .send-btn svg { width: 15px; height: 15px; stroke: #fff; fill: none; stroke-width: 2; }
+
+  .bottom-actions {
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 12px 20px; background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  .action-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 11px; font-weight: 500; transition: color 0.2s;
+  }
+  .action-btn svg {
+    width: 22px; height: 22px;
+    stroke: currentColor; fill: none; stroke-width: 1.8;
+  }
+  .action-btn.active { color: var(--pink); }
+
+  .hearts-container {
+    position: fixed; bottom: 80px; right: 20px;
+    width: 40px; pointer-events: none; z-index: 200;
+  }
+  .floating-heart {
+    position: absolute; font-size: 22px;
+    animation: floatHeart 2.5s ease-out forwards; bottom: 0;
+  }
+  @keyframes floatHeart {
+    0%{opacity:1;transform:translateY(0) scale(1)}
+    50%{opacity:0.8;transform:translateY(-80px) scale(1.2) rotate(-10deg)}
+    100%{opacity:0;transform:translateY(-150px) scale(0.5) rotate(15deg)}
+  }
+
+  .loading-dots { display: inline-flex; gap: 3px; align-items: center; }
+  .loading-dots span {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--muted); animation: dot-bounce 1.2s infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-bounce { 0%,80%,100%{transform:scale(0.8);opacity:0.5} 40%{transform:scale(1.2);opacity:1} }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <circle cx="11" cy="11" r="10" stroke="#b84fff" stroke-width="2"/>
+      <path d="M7 11.5L10 14.5L15 8.5" stroke="#b84fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Weverse<span>LIVE</span>
+  </div>
+  <div class="nav-icons">
+    <svg viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+  </div>
+</nav>
+
+<div class="video-wrapper">
+  <div class="video-placeholder">
+    <div class="video-placeholder-inner">
+      <svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+      <p>🐰 로진 라이브 중</p>
+    </div>
+  </div>
+
+  <div class="overlay-top">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="viewer-count">
+      <svg viewBox="0 0 16 16"><path d="M8 3C4.5 3 1.5 5.5 0 8c1.5 2.5 4.5 5 8 5s6.5-2.5 8-5c-1.5-2.5-4.5-5-8-5z"/><circle cx="8" cy="8" r="2.5" fill="var(--bg)"/></svg>
+      <span id="viewerNum">203,491</span>
+    </div>
+  </div>
+
+  <div class="overlay-bottom">
+    <div class="artist-info">
+      <div class="artist-avatar">🐰</div>
+      <div>
+        <div class="artist-name">로진 (ROJIN)</div>
+        <div class="artist-handle">@AURA_official</div>
+      </div>
+    </div>
+    <div class="live-title">🐰 Alright, everyone.</div>
+  </div>
+</div>
+
+<div class="timer-bar">
+  <div class="timer">방송 중 <strong id="liveTimer">00:11:23</strong></div>
+  <div class="reaction-row" style="position:relative;padding-bottom:18px;">
+    <button class="react-btn" onclick="addReaction(this,'🐰','heartCount')">🐰<span class="react-count" id="heartCount">8.3만</span></button>
+    <button class="react-btn" onclick="addReaction(this,'🎵','starCount')">🎵<span class="react-count" id="starCount">5.6만</span></button>
+    <button class="react-btn" onclick="addReaction(this,'💜','noteCount')">💜<span class="react-count" id="noteCount">4.1만</span></button>
+  </div>
+</div>
+
+<div class="main-content">
+  <div class="chat-panel">
+    <div class="chat-header">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      실시간 채팅
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="system-msg">💜 방송이 시작되었습니다</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" placeholder="로진으로 메시지 입력..." id="chatInput" maxlength="80" onkeydown="handleKey(event)"/>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-actions">
+  <button class="action-btn active" onclick="toggleHeart(this)">
+    <svg viewBox="0 0 24 24" id="heartIcon" style="fill:#ff6eb4;stroke:#ff6eb4"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    <span>좋아요</span>
+  </button>
+  <button class="action-btn" onclick="this.querySelector('svg').style.stroke='#5bc4ff'">
+    <svg viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+    <span>공유</span>
+  </button>
+  <button class="action-btn" onclick="toggleCamera(this)">
+    <svg viewBox="0 0 24 24"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+    <span>캠</span>
+  </button>
+  <button class="action-btn" onclick="toggleGift(this)">
+    <svg viewBox="0 0 24 24"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
+    <span>선물</span>
+  </button>
+</div>
+
+<div class="hearts-container" id="heartsContainer"></div>
+
+<script>
+  const chatData = [
+    { user: "aura_rojin_love", color: "#b84fff", text: "헐 로진오빠 라이브다!!!!!!!!!" },
+    { user: "AURA_official_fan", color: "#5bc4ff", text: "오늘도 잘생겼다 진짜 ㅠㅠ" },
+    { user: "rojin_world", color: "#ff6eb4", text: "할 말이 뭐예요!?!?!! 궁금해요" },
+    { user: "aura_forever", color: "#c77dff", text: "소름... 뭐지... 신곡 발표 해줄거야?" },
+    { user: "night_aura", color: "#ffa07a", text: "목소리 들으니까 눈물 나려고 ㅠㅠㅠㅠ" },
+    { user: "rojin_stan", color: "#5bc4ff", text: "오빠 스케줄 없는 날에 라이브하는 거 처음 아니에요?" },
+    { user: "aura_fan_kr", color: "#c77dff", text: "할 말 있다고요??? 컴백 예고예요??!!!" },
+    { user: "heol_rojin", color: "#ff6eb4", text: "헐 그냥 보고싶어서라고요?? 로진이 그런 말 처음 봤다" },
+    { user: "aura_purple", color: "#b84fff", text: "로진아 밥은 먹었어?? 걱정돼 항상" },
+    { user: "팬사랑해_로진", color: "#ffa07a", text: "커피만요?? ㅠㅠㅠ 밥 드세요!!!" },
+    { user: "aura_melody", color: "#5bc4ff", text: "새벽에 버블에 작업 얘기 올렸던 거 봤어요 신곡 작업 중이에요?" },
+  ];
+
+  const autoMsgs = [
+    { user: "aura_overseas", color: "#ff6eb4", text: "ROJIN WE LOVE YOU FROM BRAZIL 💜" },
+    { user: "aura_fan_us", color: "#c77dff", text: "OH MY GOD 💜💜💜" },
+    { user: "heol_dohyun", color: "#ffa07a", text: "도현 오빠는 이거 보고 있을까 ㅋㅋㅋ" },
+    { user: "aura_stan_1", color: "#b84fff", text: "이상하긴요 ㅋㅋㅋ 완전 멋있어요 ㅠㅠ" },
+    { user: "rojin_rabbit", color: "#ff6eb4", text: "로진 영어 말투 ㅋㅋ" },
+    { user: "aura_melody", color: "#5bc4ff", text: "신곡 언제 나와요?? 얼른 듣고 싶다 ㅠㅠ" },
+    { user: "rojin_world", color: "#c77dff", text: "로진 직캠 움짤 오늘도 프사로 쓰고 있어요 🐰💜" },
+    { user: "night_aura", color: "#ffa07a", text: "레전드라서요 ㅠㅠ 영원히 퍼질 거예요 ㅋㅋ" },
+  ];
+
+  let autoIdx = 0;
+  const messagesEl = document.getElementById('chatMessages');
+  const fanColors = ['#b84fff','#5bc4ff','#ff6eb4','#c77dff','#ffa07a'];
+
+  function appendMessage(data) {
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg' + (data.isArtist ? ' artist-msg' : '');
+    const initial = data.user.charAt(0).toUpperCase();
+    const now = new Date();
+    const t = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    msg.innerHTML = `
+      <div class="msg-avatar" style="background:${data.color}22;color:${data.color};border:1.5px solid ${data.isArtist ? '#b84fff' : 'transparent'}">${initial}</div>
+      <div class="msg-body">
+        <div class="msg-user" style="color:${data.color}">${data.user}${data.isArtist ? ' <span style="font-size:10px;background:#b84fff22;color:#b84fff;padding:1px 5px;border-radius:3px;font-weight:500">아티스트</span>' : ''}</div>
+        <div class="msg-text">${data.text}</div>
+        <div class="msg-time">${t}</div>
+      </div>`;
+    messagesEl.appendChild(msg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return msg;
+  }
+
+  chatData.forEach((d, i) => setTimeout(() => appendMessage(d), i * 600));
+  setInterval(() => {
+    appendMessage(autoMsgs[autoIdx % autoMsgs.length]);
+    autoIdx++;
+  }, 3800);
+
+  let viewers = 203491;
+  setInterval(() => {
+    viewers += Math.floor(Math.random() * 60) - 15;
+    if (viewers < 180000) viewers = 180000;
+    document.getElementById('viewerNum').textContent = viewers.toLocaleString('ko-KR');
+  }, 4000);
+
+  let seconds = 11 * 60 + 23;
+  setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('liveTimer').textContent = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  }, 1000);
+
+  const rawCounts = { heartCount: 83000, starCount: 56000, noteCount: 41000 };
+  function addReaction(btn, emoji, id) {
+    rawCounts[id] += Math.floor(Math.random() * 50 + 10);
+    const n = rawCounts[id];
+    document.getElementById(id).textContent = n >= 10000 ? (n/10000).toFixed(1)+'만' : n.toLocaleString();
+    spawnHeart(emoji);
+  }
+
+  function spawnHeart(emoji = '💜') {
+    const c = document.getElementById('heartsContainer');
+    const el = document.createElement('div');
+    el.className = 'floating-heart';
+    el.textContent = emoji;
+    el.style.left = (Math.random() * 20) + 'px';
+    c.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+  setInterval(() => spawnHeart(['💜','🐰','🎵','⭐','✨'][Math.floor(Math.random()*5)]), 2200);
+
+  function handleKey(e) { if (e.key === 'Enter') sendMessage(); }
+
+  let typingEl = null;
+  function showTyping() {
+    typingEl = document.createElement('div');
+    typingEl.className = 'system-msg';
+    typingEl.innerHTML = '팬들이 입력 중&nbsp;<span class="loading-dots"><span></span><span></span><span></span></span>';
+    messagesEl.appendChild(typingEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function hideTyping() {
+    if (typingEl) { typingEl.remove(); typingEl = null; }
+  }
+
+  const auraLore = `[보이그룹 AURA 멤버 설정]
+- 이로진 (로진, 20세): 센터 & 메인보컬. 지금 라이브 방송 중인 본인.
+- 도현 (20세): 리더 & 메인보컬. 신장 180cm, 마른데 탄탄. 어깨가 넓고 허리가 얇은 섹시 역삼각형 체형. + 팔에 잔근육
+모에화 동물을 강아지🐕. 주인 좋아하는 강아지처럼 팬들을 좋아해준다.
+팀 내 포지션은 보호자다. + 애들이 사고치면 사과하는 역할.
+팀이 손해보거나 피해를 입는 건 가만히 못 본다. 불이익이 있을 때 찾아가서 꿋꿋하게 따지는 총대 역할도 함.
+모든 걸 다 잘하는 만능맨
+그러나 이제 30% 확률로 공연 전날부터 아파서 무대에서 앉아서 노래만 부른다.
+서바이벌 아이돌 출신. 프로그램 이름은 방과후 리부트. 동정표 받아서 데뷔권 턱걸이로 들어갔는데 하필 위암 초기 판정 받아서 데뷔 못함. 항암 치료하고 나아서 아우라 데뷔조에 합류함.
+연습생 기간 가장 긺 (중학생 때부터 연습생 생활)
+사실 무대에서 활동하는 것보다 예능이나 드라마에 더 자주 나온다. 가끔 TV에 조연으로 등장함.
+예능 프로그램인 문제적 남자에 나와 지적 능력으로 캐리하며 팀 인지도 올림.
+먹방 예능에 출연하여 간장게장을 맛있게 먹고, 간장게장 열풍을 불러옴. 외국인들이 많이 유입됐다.
+버블 보면 항상 '병원 가요', '저 채혈했어요', '저 입원했어요'하고 올림. 그렇지만 멤버들 중 버블을 가장 성실하게 한다. 하루에 네다섯 번씩 꼭 들어와서 답장해준다.
+팬싸에서 팬들에게 쏘 스윗한 모습을 보여준다. 머리띠도 잘 써주고, 애교 부려달라고 하면 부끄러워하면서 해줌.
+안 아플 때마다 팀을 챙기기 위해 아침, 점심, 저녁 풀코스로 밥을 차려준다. 요리를 잘한다. 근데 손이 커서 음식이 엄청 많아진다.
+옷 보는 눈이 좋아서 멤버들 출근길 룩, 공항 패션을 직접 골라준다.
+현실의 것을 무서워하고 눈에 안 보이는 건 안 무서워함. 예시로 공사장 아래를 걸어가는 건 겁먹지만, 귀신이 나오는 영화나 게임은 눈 하나 깜짝 안 하고 봄.
+서바이벌 아이돌 프로그램 출신 + 성실 청년 이미지로 아주머니 팬층이 두둑함. 그래서 예능 나가면 트로트 자주 불러줌.
+발라드를 커버하는 걸 좋아해서 개인 유튜브에 커버곡이 많다. 틱톡에도 기타를 치며 노래 부르는 영상을 올림.
+라이브는 완벽한 진행 + 은휘의 돌발행동을 막을 수 없어서 별로 선호하지 않는다.
+인스타 라방은 충분한 준비가 없으면 진행하지 않는다. 빈도는 거의 한 달에 한 번 정도.
+먼가 작고 귀여운 녀석들 (약칭 먼작귀)을 좋아한다. 특히 하치와레를 좋아함. 하치와레의 성실한 모습이 로진과 닮아서 맥락상 로진도 좋아함. 사실상 도 현의 최애는 로진.
+같은 소속사 선배 그룹인 에이원의 멤버 중, 주혁을 가장 존경한다. 주혁처럼 완벽하게 팀을 이끌어가고 싶어한다. 그래서 최근에는 마키아벨리의 군주론을 읽었으나, 리더가 군주는 아니라서 크게 도움이 안 됐다.
+맨날 거짓말만 하는 리안을 보며 안타깝게 생각한다. 많이 도와주려고 해본다.
+리안이랑 은휘랑 둘 다 동생이라 잘 챙겨줌. 자기가 리더지만 아파서 잘 못 챙겨준다는 죄책감 때문에 혼내진 않음.
+팀 내 최애가 로진. 동갑이라 제일 친하게 지낸다. 자기가 죽으면(?) 로진이가 있을 테니 약간 안심중.
+- 은휘 (본명 이봉수, 17세): 래퍼. 모에화 동물은 여우🦊. 직캠 뜰때마다 썸네일이 요망하게 끌어들이는 맛이 있다고 해서 붙은 별명.
+-공설미남 비주얼 하나는 기가막힘
+-페이스 직캠 조회수가 항상 높다.
+-근데 노래를 더럽게 못함(앵콜때마다 실력이슈로 렉카한테 물어뜯김)
+-그래서 랩이라도 시키지만 랩도 잘 못한다
+-태도 논란이 꾸준히 있지만(버블 한 달에 한 번 접속.) 진성 악개들이 극한의 쉴드를 쳐준다
+-신인인데 벌써부터 팬싸(특히 영통팬싸) 동태눈 논란이 있다. “아정말요?”는 기본.
+-근데 또 관종이라 인스타 라방은 겁나 많이 킨다. 맨날 투덜거리고 얼굴 자랑하면서 팬들이 빨아주는거 즐김
+-외모정병이 있다. 라방하다가 자기 얼굴이 좀 못생겨보이면 라이브 바로 꺼버린다
+-숏폼의 악마 챌린지의 악마
+-아이돌 되기 전에 틱톡커였음
+-연습 기간 1년
+-춤을 못추진 않는데 가오가 좀 쎄다. 표정 연기 하나는 기가 막힌다
+-미감은 좋다. 옷도 잘 입고 특히 셀카를 겁나 많이 찍어서 개인 sns에 올라오는 사진들이 하나같이 끝내준다.
+-이렇게 잘생겼지만 인성 하자 이슈로 열애설 하나 없이 깨끗하다. 팬들도 사귀고 싶진 않은 아이돌 1등으로 뽑힌다
+-악개 문제가 좀 심하다. 타팀과 싸우는건 물론이고 같은 팀 다른 멤버 팬들과도 맨날 싸운다. 은휘 프사는 아이돌판 내에서 기피 대상이다
+-애교같은건 능청스럽게 잘하지만, 자아가 비대해서 팬싸에서 해달라는거 하기 싫으면 거부한다 
+
+- 리안 (본명 허태오, 17세): 메인댄서. 유명 탤런트 허진오의 아들. 어릴 때부터 방송에 자주 얼굴을 비췄으며, KBS 《슈퍼맨이 돌아왔다》에 출연해 인기를 끌었다. 
+• 원래는 아이돌보다는 댄서에 가까웠다. 어릴 때부터 춤을 잘 춰서 '댄스 신동'이라고 불렸고, 유튜브에 댄스 커버 영상과 챌린지 영상을 올리며 활동했다. 
+• 부모님 이야기가 나오는 걸 별로 좋아하지 않는다. 실력으로 인정받고 싶어 하는 성향이 강하다.
+• 버블은 생각보다 자주 오는 편이다. 일주일에 4~6번 정도. 다만 팬들과 소통하러 오는 건지 장난치러 오는 건지 헷갈릴 때가 많다. 셀카를 올려놓고 팬들 반응을 몰래 확인하는 것으로도 유명하다.
+• 무대 위에서는 카리스마 넘치는 퍼포먼스로 유명하다. 특히 표정 연기를 잘해서 팬들이 직캠을 보는 맛이 있다는 이야기를 자주 한다.
+• 성격은 한마디로 장난꾸러기. 사람 놀리는 걸 정말 좋아한다. 팬들 사이에서는 공식 구라쟁이로 유명하며, 버블에 들어와서도 의미심장한 말을 던져놓고 사라지는 경우가 많다.
+• 진짜 중요한 스포를 해도 아무도 안 믿는다.
+• 예를 들어 "저 지금 공항이에요."라고 보내놓고 사실 집 침대에 누워 있었던 적도 있다.
+문제는 표정 변화 없이 너무 자연스럽게 말해서 대부분 속는다는 것이다. 그래서 팬들 사이에서는 "리안 말은 공식 공지 뜨기 전까지 믿지 말자"라는 말이 밈이 됐다.
+• 팬서비스는 좋은 편이다. 팬들을 좋아하는 건 맞는데 표현 방식이 이상하다. 맨날 장난치고 놀리면서도 팬들이 부탁하면 결국 다 들어준다. 애교도 부끄러워하면서 못 이기는 척 해준다.
+• 승부욕도 꽤 강하다. 게임이나 내기가 걸리면 진심이 되며, 지는 걸 정말 싫어한다. 져도 인정하기보다는 재대결을 요구하는 편이다.
+• 리안 팬사인회 유명일화
+팬: 오빠 MBTI 뭐예요? 
+리안: ENFP요.
+팬: 저번엔 ISTJ라며. 
+리안: 둘 다 아니에요.
+• 팬덤 내에는 리안의 발언을 해석하는 전용 네임드 계정이 존재한다. 워낙 진실과 거짓말을 자연스럽게 섞어 말하는 탓에 팬들은 종종 리안 본인보다 해당 계정의 해석을 더 신뢰한다. 팬들 사이에서는 이를 '리안어 번역기'라고 부른다.
+• 집중하면 무의식적으로 볼을 빵빵하게 부풀리는 버릇이 있으며, 팬들은 이를 보고 리안의 진심 모드를 판단한다.`;
+
+  
+function getFallbackReactions(rojinText) {
+  const t = rojinText.toLowerCase();
+  const comments = [];
+
+  const add = (user, text) => comments.push({user, text});
+
+  if (t.includes('도현')) {
+    add('도현맘', '우리 리더 또 뭐했어요? 💜');
+    add('aura_forever', '도현이 또 요리함? ㅋㅋ');
+  }
+
+  if (t.includes('은휘')) {
+    add('은휘직캠중독', '은휘 직캠 또 떴어요?');
+    add('은휘악개123', '결국 화제성은 은휘지 ㅋㅋ');
+  }
+
+  if (t.includes('리안')) {
+    add('리안어번역기', '이거 리안이 들으면 놀림당함');
+    add('리안사전', '리안어로 번역 부탁');
+  }
+
+  if (t.includes('밥') || t.includes('배고')) {
+    add('aura_purple', '밥부터 먹어요 ㅠㅠ');
+    add('도현맘', '도현이 형 불러와');
+  }
+
+  if (t.includes('작업') || t.includes('곡') || t.includes('신곡')) {
+    add('aura_melody', '신곡 스포죠 이거?');
+    add('music_aura', '녹음 끝난 거 맞죠?');
+  }
+
+  const overseas = [
+    {user:'aura_brazil',text:'WE LOVE YOU ROJIN 💜'},
+    {user:'aura_japan',text:'ROJIN KAKKOII!!'},
+    {user:'aura_global',text:'HELLO FROM USA 🫶'}
+  ];
+
+  const akgae = [
+    {user:'은휘악개123',text:'근데 은휘는요?'},
+    {user:'센터교체원함',text:'우리 애도 언급 좀'},
+    {user:'직캠조회수원탑',text:'화제성은 다른 멤버가 더…'}
+  ];
+
+  const normal = [
+    {user:'aura_forever',text:'ㅋㅋㅋㅋ 진짜 웃겨요'},
+    {user:'rojin_world',text:'오늘 텐션 좋다'},
+    {user:'aura_purple',text:'보고싶었어요 💜'},
+    {user:'night_aura',text:'새벽 라이브 너무 좋음'},
+    {user:'aura_rojin_love',text:'진짜 기다렸어요 ㅠㅠ'}
+  ];
+
+  comments.push(normal[Math.floor(Math.random()*normal.length)]);
+
+  if (Math.random() < 0.5)
+    comments.push(overseas[Math.floor(Math.random()*overseas.length)]);
+
+  if (Math.random() < 0.35)
+    comments.push(akgae[Math.floor(Math.random()*akgae.length)]);
+
+  return comments.slice(0,4);
+}
+
+// 1) https://aistudio.google.com/apikey 접속 (구글 계정 로그인, 카드 등록 불필요)
+// 2) "Create API key" 클릭 후 키 복사
+// 3) 아래 따옴표 안에 붙여넣기
+const GEMINI_API_KEY = "AQ.Ab8RN6LgO1gCbU1gW-Ew0aAtJ829xTavVkAYX1JuOmQx5gg1zA";
+
+async function getFanReactions(rojinText) {
+  // 키를 아직 설정 안 했으면 기존 키워드 기반 무료 로직 사용
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.includes("여기에")) {
+    return getFallbackReactions(rojinText);
+  }
+  try {
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: `${auraLore}
+
+너는 보이그룹 AURA 멤버 '로진'의 실시간 방송 채팅창에 모여있는 팬들이다. 로진이 방금 한 말에 진성 팬덤 특유의 텐션으로 실시간 댓글 2~4개를 만들어라.
+규칙:
+- 각 댓글은 로진이 한 말의 구체적인 단어/주제/감정에 직접 반응해야 한다. 모호하고 일반적인 댓글은 금지.
+- 닉네임은 매번 새롭게, 팬덤 느낌으로 (예: aura_***, ***_rojin, night_aura 등).
+- 한국어 채팅 말투(줄임말, ㅋㅋ, ㅠㅠ, 이모지 약간 허용), 1~2문장으로 짧게.
+- 가끔(전체의 20% 이하 빈도로) 해외팬 영어 댓글이나 다른 멤버를 언급하는 악개성 댓글을 섞어도 됨.` }]
+          },
+          contents: [{
+            role: "user",
+            parts: [{ text: `로진이 방금 방송에서 이렇게 말했다: "${rojinText}"` }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  user: { type: "STRING" },
+                  text: { type: "STRING" }
+                },
+                required: ["user", "text"]
+              }
+            }
+          }
+        })
+      }
+    );
+    const data = await res.json();
+    const raw = data.candidates[0].content.parts[0].text;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.slice(0, 4).filter(r => r && r.user && r.text);
+    }
+    throw new Error("빈 응답");
+  } catch (err) {
+    console.warn("Gemini 호출 실패, 기본 반응으로 대체:", err);
+    return getFallbackReactions(rojinText);
+  }
+}
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const text = input.value.trim();
+    if (!text) return;
+
+    appendMessage({ user: '로진', color: '#b84fff', text, isArtist: true });
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    showTyping();
+    try {
+      const minDelay = new Promise(resolve => setTimeout(resolve, 900 + Math.random() * 400));
+      const [reactions] = await Promise.all([getFanReactions(text), minDelay]);
+      hideTyping();
+      reactions.forEach((r, i) => {
+        setTimeout(() => {
+          appendMessage({ user: r.user, color: fanColors[Math.floor(Math.random()*fanColors.length)], text: r.text });
+        }, 500 + i * (600 + Math.random()*500));
+      });
+    } catch (err) {
+      hideTyping();
+      const errEl = document.createElement('div');
+      errEl.className = 'system-msg';
+      errEl.textContent = '⚠️ 팬 반응 생성 실패 (잠시 후 다시 시도해주세요)';
+      messagesEl.appendChild(errEl);
+      console.error('팬 반응 생성 실패:', err);
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  }
+
+  function toggleHeart(btn) {
+    const svg = btn.querySelector('svg');
+    const active = btn.classList.toggle('active');
+    svg.style.fill = active ? '#ff6eb4' : 'none';
+    svg.style.stroke = active ? '#ff6eb4' : 'currentColor';
+    if (active) spawnHeart('💜');
+  }
+  function toggleCamera(btn) {
+    btn.classList.toggle('active');
+    const svg = btn.querySelector('svg');
+    svg.style.stroke = btn.classList.contains('active') ? '#5bc4ff' : '';
+  }
+  function toggleGift(btn) {
+    spawnHeart(['🎁','⭐','💎','🐰'][Math.floor(Math.random()*4)]);
+    const sys = document.createElement('div');
+    sys.className = 'system-msg';
+    sys.textContent = '💜 내가 별풍선을 선물했습니다!';
+    messagesEl.appendChild(sys);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+</script>
+</body>
+</html>
